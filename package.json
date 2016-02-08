@@ -1,0 +1,29 @@
+{
+  "name": "ultimate-fonts-loading",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "files": [
+    "lib/"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "./node_modules/.bin/babel src/ -d lib/",
+    "watch": "npm run build -- --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NekR/ultimate-fonts-loading.git"
+  },
+  "author": "Arthur Stolyar <nekr.fabula@gmail.com>",
+  "license": "MIT",
+  "dependencies": {},
+  "bugs": {
+    "url": "https://github.com/NekR/ultimate-fonts-loading/issues"
+  },
+  "homepage": "https://github.com/NekR/ultimate-fonts-loading",
+  "keywords": [],
+  "devDependencies": {
+    "babel": "^5.8.23"
+  }
+}

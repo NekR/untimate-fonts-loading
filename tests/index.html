@@ -1,0 +1,36 @@
+<!doctype html>
+
+<script src="../lib/index.js"></script>
+
+<style>
+ html, body {
+   font-family: monospace;
+ }
+
+ html.roboto * {
+  font-family: RobotoTest !important;
+ }
+</style>
+
+<div style="font-size: 60px;"> Test TEST blbdlbdlfbd @</div>
+
+<script type="text/tpl" id="test">
+  @font-face {
+    font-family: 'RobotoTest';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Droid Sans'), local('Roboto'), local('Roboto-Regular'), url(https://fonts.gstatic.com/s/roboto/v15/CrYjSnGjrRCn0pd9VQsnFOvvDin1pK8aKteLpeZ5c0A.woff) format('woff');
+  }
+</script>
+
+<script>
+  setTimeout(function() {
+    Fonts.load(document.querySelector('#test').textContent, function(a) {
+      console.log(a); document.documentElement.className = 'roboto';
+    }, function(b) {
+      console.log(b)
+    });
+
+    // document.documentElement.className = 'roboto';
+  }, 1000);
+</script>
