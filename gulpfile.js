@@ -41,7 +41,7 @@ gulp.task('build:browser-min', () => {
     .pipe(gulp.dest('dist'));
 });
 
-gulp.task('build', gulp.series('build:node', 'build:browser', 'build:browser'));
+gulp.task('build', gulp.series('build:node', 'build:browser', 'build:browser-min'));
 
 gulp.task('watch:node', () => {
   gulp.watch(['src/*.js'], gulp.series('build:node'));
