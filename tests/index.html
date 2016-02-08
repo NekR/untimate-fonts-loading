@@ -1,6 +1,6 @@
 <!doctype html>
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1">
 
-<script src="../lib/index.js"></script>
 
 <style>
  html, body {
@@ -9,6 +9,10 @@
 
  html.roboto * {
   font-family: RobotoTest !important;
+ }
+
+ html body #console * {
+  font-family: monospace !important;
  }
 </style>
 
@@ -19,16 +23,44 @@
     font-family: 'RobotoTest';
     font-style: normal;
     font-weight: 400;
-    src: local('Droid Sans'), local('Roboto'), local('Roboto-Regular'), url(https://fonts.gstatic.com/s/roboto/v15/CrYjSnGjrRCn0pd9VQsnFOvvDin1pK8aKteLpeZ5c0A.woff) format('woff');
+    src: local('Indie Flower'), local('IndieFlower'), url(https://fonts.gstatic.com/s/indieflower/v8/10JVD_humAd5zP2yrFqw6qRDOzjiPcYnFooOUGCOsRk.woff) format('woff'), url(https://fonts.gstatic.com/s/indieflower/v8/10JVD_humAd5zP2yrFqw6pS3E-kSBmtLoNJPDtbj2Pk.ttf) format('truetype');
   }
 </script>
+
+<!-- <a href="https://fonts.googleapis.com/css?family=Roboto:400,500,700%27" target="_blank">https://fonts.googleapis.com/css?family=Roboto:400,500,700%27</a> -->
+
+<div id="console"></div>
+
+<script>
+  if (navigator.userAgent.indexOf('Android') !== -1) {
+    window.onerror = function(a, b, c) {
+      alert([a, b, c]);
+    };
+
+    window.console = {
+      log: function() {
+        var a = [].map.call(arguments, function(a) {
+          return JSON.stringify(a, null, '  ');
+        }).join(' ');
+
+        var b = document.createElement('p');
+        b.textContent = a;
+
+        document.querySelector('#console').appendChild(b);
+      }
+    };
+  }
+</script>
+
+
+<script src="../lib/index.js"></script>
 
 <script>
   setTimeout(function() {
     Fonts.load(document.querySelector('#test').textContent, function(a) {
-      console.log(a); document.documentElement.className = 'roboto';
+      document.documentElement.className = 'roboto';
     }, function(b) {
-      console.log(b)
+      console.log('FONT NOT LOADED');
     });
 
     // document.documentElement.className = 'roboto';

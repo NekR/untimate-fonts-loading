@@ -58,9 +58,17 @@ class Fonts {
       // }
     }
 
+    const dotIndex = url.lastIndexOf('.');
+    const ext = url.slice(dotIndex + 1);
+
     xhr.onload = () => {
       if (done) return;
       done = true;
+
+      if (xhr.status !== 200) {
+        errback && errback();
+        return;
+      }
 
       if (!callback) return;
 
@@ -76,17 +84,19 @@ class Fonts {
       else if (response instanceof ArrayBuffer) {
         try {
           blob = new Blob([response], {
-            type: mimes['woff']
+            type: mimes[ext]
           });
         } catch (e) {
+          console.log('1', e.message);
           try {
             const BlobBuilder = window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder;
             let builder = new BlobBuilder();
 
-            builder.append(content);
+            builder.append(response);
             blob = builder.getBlob();
             builder = null;
           } catch (e) {
+            console.log('2', e.message);
             const arr = new Uint8Array(response);
             string = String.fromCharCode.apply(String, arr);
           }
@@ -106,7 +116,7 @@ class Fonts {
           if (blob) {
             url = (window.URL || window.webkitURL).createObjectURL(blob);
           } else {
-            url = `data:${ mimes['woff'] };base64,` + btoa(string);
+            url = `data:${ mimes[ext] };base64,` + btoa(string);
           }
 
           return url;
@@ -216,7 +226,7 @@ class Fonts {
     const hasLoadingWidth = fallbackWidth !== loadingWidth;
     let customWidth;
 
-    if (!hasLoadingWidth) {
+    // if (!hasLoadingWidth) {
       family = getFontFamily();
       Fonts.injectFontFace(family, customSource, {});
 
@@ -226,7 +236,7 @@ class Fonts {
       gl.font = fontType;
 
       customWidth = gl.measureText(DEFAULT_TEXT).width;
-    }
+    // }
 
     Fonts.browserDefaults = {
       fallbackWidth, loadingWidth, customWidth, hasLoadingWidth
@@ -242,7 +252,7 @@ class Fonts {
       Fonts.getBrowserDefaults();
     }
 
-    console.log(font);
+    // console.log(font);
 
     const family = getFontFamily();
     // const source = font.localSrc.join(', ') + `, url(${ BLANK_FONT }) format('opentype')`;
@@ -344,9 +354,18 @@ class Fonts {
 
   static loadFont(font, callback, errback) {
     if (USE_FONTS_API && document.fonts && window.FontFace) {
+      console.log(font.family, font.src, font);
       var fontFace = new FontFace(font.family, font.src, font);
 
-      font.load().then(() => callback(font), () => errback(font));
+      fontFace.load().then(() => {
+        console.log('Promise success');
+        document.fonts.add(fontFace);
+
+        callback(font);
+      }, (e) => {
+        console.error('Promise reject', e);
+        errback()
+      });
     } else {
       font.parseSources();
 
@@ -367,51 +386,72 @@ class Fonts {
         return;
       }
 
-      const fontUrl = Fonts.parseUrlSrc(font.urlSrc[0]);
+      let index = 0;
 
-      if (!fontUrl[0]) {
-        setTimeout(errback);
-        return;
-      }
-
-      Fonts.loadFontData(fontUrl[0], (fontData) => {
-        let source = `url(${ fontData.getUrl() })`;
-
-        if (fontUrl[1]) {
-          source += ` format(${ fontUrl[1] })`;
+      const load = () => {
+        if (font.urlSrc.length === index) {
+          setTimeout(errback)
+          return;
         }
 
-        const fontType = Fonts.injectFont(font.family, source, font);
+        const fontUrl = Fonts.parseUrlSrc(font.urlSrc[index++]);
 
-        const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('2d');
-        gl.font = fontType;
+        if (!fontUrl[0]) {
+          setTimeout(errback);
+          return;
+        }
 
-        var interval = setInterval(() => {
-          const width = gl.measureText(DEFAULT_TEXT).width;
+        Fonts.loadFontData(fontUrl[0], (fontData) => {
+          let source = `url(${ fontData.getUrl() })`;
 
-          console.log('width', width);
-
-          if (width === Fonts.browserDefaults.loadingWidth) {
-            // loadingWidth === fallbackWidth and someone loaded
-            // default font. It will be shown after timeout
-            return;
+          if (fontUrl[1]) {
+            source += ` format(${ fontUrl[1] })`;
           }
 
-          // if (width === Fonts.browserDefaults.fallbackWidth) {
-            // someone loaded default font, display it
-          // }
+          console.log('Loading source:', source);
 
-          clearTimeout(timeout)
-          clearInterval(interval);
-          callback(font);
-        }, 50);
+          source += ', ' + CUSTOM_FONT
 
-        var timeout = setTimeout(() => {
-          clearInterval(interval);
-          callback(font);
-        }, 500);
-      }, errback);
+          const fontType = Fonts.injectFont(font.family, source, font);
+
+          const canvas = document.createElement('canvas');
+          const gl = canvas.getContext('2d');
+          gl.font = fontType;
+
+          var interval = setInterval(() => {
+            const width = gl.measureText(DEFAULT_TEXT).width;
+
+            console.log('Final width', width);
+
+            if (width === Fonts.browserDefaults.customWidth) {
+              clearTimeout(timeout)
+              clearInterval(interval);
+              load();
+            }
+
+            if (width === Fonts.browserDefaults.loadingWidth) {
+              // loadingWidth === fallbackWidth and someone loaded
+              // default font. It will be shown after timeout
+              return;
+            }
+
+            // if (width === Fonts.browserDefaults.fallbackWidth) {
+              // someone loaded default font, display it
+            // }
+
+            clearTimeout(timeout)
+            clearInterval(interval);
+            callback(font);
+          }, 50);
+
+          var timeout = setTimeout(() => {
+            clearInterval(interval);
+            callback(font);
+          }, 500);
+        }, () => load());
+      };
+
+      load();
     }
   }
 }
