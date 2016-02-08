@@ -4,7 +4,7 @@ const R_FONT_FACE = /\@font-face\s+\{([\s\S]*?)\}/g;
 const R_CSS_PAIR = /^\s*([a-zA-Z\-]+)\s*:\s*([\s\S]+?)\s*;?$/mg;
 const R_URL_SRC = /^\s*url\(([\s\S]*?)\)(?:\s+format\(([\s\S]*?)\))?\s*$/;
 
-const USE_FONTS_API = false;
+const USE_FONTS_API = true;
 
 const mimes = {
   woff: 'application/font-woff',
@@ -140,6 +140,22 @@ export function loadFontData(url, callback, errback) {
   xhr.send();
 }
 
+export function loadFile(url, callback, errback) {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+
+  xhr.onload = () => {
+    if (xhr.status == 200) {
+      callback && callback(xhr.response);
+    } else {
+      errback && errback();
+    }
+  };
+
+  xhr.onerror = errback;
+  xhr.send();
+}
+
 export function parseStylesheet(content) {
   const fonts = [];
 
@@ -249,7 +265,7 @@ export function getBrowserDefaults() {
   // document.body.removeChild(elem);
 }
 
-export function checkFont(font, callback) {
+export function checkFont(font) {
   if (!browserDefaults) {
     getBrowserDefaults();
   }
@@ -276,15 +292,6 @@ export function checkFont(font, callback) {
 
   const width = gl.measureText(DEFAULT_TEXT).width;
   console.log('check font', width, browserDefaults);
-
-  const measure = () => {
-    const newWidth = gl.measureText(DEFAULT_TEXT).width;
-
-    console.log({ newWidth, width }, browserDefaults);
-  };
-
-  // measure();
-  setTimeout(measure, 500);
 
   // Loading with is reported only when there is no local font (loading external)
   if (
@@ -345,14 +352,44 @@ export function load(stylesheet, callback, errback) {
   const load = (content) => {
     const fonts = parseStylesheet(content);
 
-    loadFonts(fonts, callback, errback);
+    if (USE_FONTS_API && document.fonts) {
+      nativeLoadFonts(content, fonts, callback, errback);
+    } else {
+      loadFonts(fonts, callback, errback);
+    }
   };
 
   if (isURL) {
-    loadFile(stylesheet, load, errback());
+    loadFile(stylesheet, load, errback);
   } else {
     load(stylesheet);
   }
+}
+
+export function nativeLoadFonts(stylesheet, fonts, callback, errback) {
+  var style = document.createElement('style');
+  style.textContent = stylesheet;
+
+  document.querySelector('head').appendChild(style);
+
+  const promises = [];
+  const used = {};
+
+  for (let i = 0, len = fonts.length; i < len; i++) {
+    const font = fonts[i];
+    const fontType = getFontType(font);
+
+    if (used[fontType]) continue;
+    used[fontType] = true;
+
+    console.log('Loading font:', fontType);
+
+    promises.push(
+      document.fonts.load(fontType, DEFAULT_TEXT)
+    );
+  }
+
+  Promise.all(promises).then(callback, errback);
 }
 
 export function loadFonts(fonts, callback, errback) {
@@ -400,6 +437,11 @@ export function loadFont(font, callback, errback) {
       callback(font);
     });
 
+    return;
+  }
+
+  if (font.unicodeRange) {
+    setTimeout(() => errback('Error: #1'));
     return;
   }
 
