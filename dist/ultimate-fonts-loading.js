@@ -334,7 +334,7 @@ function injectFont(family, source, font) {
 }
 
 function injectFontFace(family, source, desc) {
-  var fields = ['font-family: ' + family + ';', 'src: ' + source + ';'];
+  var fields = ['font-family: \'' + family + '\';', 'src: ' + source + ';'];
 
   if (desc.weight) fields.push('font-weight: ' + desc.weight + ';');
   if (desc.style) fields.push('font-style: ' + desc.style + ';');
@@ -349,6 +349,7 @@ function injectFontFace(family, source, desc) {
   style.textContent = code;
 
   document.querySelector('head').appendChild(style);
+  style.appendChild(document.createTextNode(''));
 }
 
 function load(stylesheet, callback, errback) {

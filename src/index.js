@@ -326,7 +326,7 @@ export function injectFont(family, source, font) {
 
 export function injectFontFace(family, source, desc) {
   const fields = [
-    `font-family: ${ family };`,
+    `font-family: '${ family }';`,
     `src: ${ source };`,
   ];
 
@@ -345,6 +345,7 @@ export function injectFontFace(family, source, desc) {
   style.textContent = code;
 
   document.querySelector('head').appendChild(style);
+  style.appendChild(document.createTextNode(''));
 }
 
 export function load(stylesheet, callback, errback) {
