@@ -7,8 +7,12 @@
    font-family: monospace;
  }
 
- html.roboto * {
-  font-family: RobotoTest !important;
+ html.fonts #first {
+  font-family: FirstTest !important;
+ }
+
+ html.fonts #second {
+  font-family: SecondTest !important;
  }
 
  html body #console * {
@@ -16,14 +20,22 @@
  }
 </style>
 
-<div style="font-size: 60px;"> Test TEST blbdlbdlfbd @</div>
+<div style="font-size: 60px;" id="first"> Test TEST blbdlbdlfbd @</div>
+<div style="font-size: 60px;" id="second"> Test TEST blbdlbdlfbd @</div>
 
 <script type="text/tpl" id="test">
   @font-face {
-    font-family: 'RobotoTest';
+    font-family: 'FirstTest';
     font-style: normal;
     font-weight: 400;
     src: local('Indie Flower'), local('IndieFlower'), url(https://fonts.gstatic.com/s/indieflower/v8/10JVD_humAd5zP2yrFqw6qRDOzjiPcYnFooOUGCOsRk.woff) format('woff'), url(https://fonts.gstatic.com/s/indieflower/v8/10JVD_humAd5zP2yrFqw6pS3E-kSBmtLoNJPDtbj2Pk.ttf) format('truetype');
+  }
+
+  @font-face {
+    font-family: 'SecondTest';
+    font-style: normal;
+    font-weight: 400;
+    src: url(https://fonts.gstatic.com/s/lobster/v15/aC971nPl5R8TiGBPHS_HNwLUuEpTyoUstqEm5AMlJo4.ttf) format('truetype');
   }
 </script>
 
@@ -32,7 +44,7 @@
 <div id="console"></div>
 
 <script>
-  if (navigator.userAgent.indexOf('Android') !== -1) {
+  if (navigator.userAgent.match(/Android|iOS|iPhone|iPad/)) {
     window.onerror = function(a, b, c) {
       alert([a, b, c]);
     };
@@ -58,7 +70,7 @@
 <script>
   setTimeout(function() {
     Fonts.load(document.querySelector('#test').textContent, function(a) {
-      document.documentElement.className = 'roboto';
+      document.documentElement.className = 'fonts';
     }, function(b) {
       console.log('FONT NOT LOADED');
     });

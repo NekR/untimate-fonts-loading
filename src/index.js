@@ -252,6 +252,10 @@ class Fonts {
       Fonts.getBrowserDefaults();
     }
 
+    if (!font.localSrc.length) {
+      return false;
+    }
+
     // console.log(font);
 
     const family = getFontFamily();
@@ -283,7 +287,8 @@ class Fonts {
     // Loading with is reported only when there is no local font (loading external)
     if (
       Fonts.browserDefaults.hasLoadingWidth &&
-      width !== Fonts.browserDefaults.loadingWidth
+      width !== Fonts.browserDefaults.loadingWidth &&
+      width !== Fonts.browserDefaults.customWidth
     ) {
       console.log('Exists because not loading with');
       return true;
@@ -349,7 +354,19 @@ class Fonts {
   }
 
   static loadFonts(fonts, callback, errback) {
-    Fonts.loadFont(fonts[0], callback, errback);
+    let count = fonts.length;
+    let hasError = false;
+
+    for (let i = 0, len = fonts.length; i < len; i++) {
+      Fonts.loadFont(fonts[i], () => {
+        if (!--count) {
+          hasError ? errback && errback() : callback && callback();
+        }
+      }, () => {
+        hasError = true;
+        if (!--count) errback && errback();
+      });
+    }
   }
 
   static loadFont(font, callback, errback) {
@@ -418,14 +435,19 @@ class Fonts {
           const gl = canvas.getContext('2d');
           gl.font = fontType;
 
+          const clean = () => {
+            clearTimeout(timeout)
+            clearInterval(interval);
+            fontData.revokeUrl();
+          };
+
           var interval = setInterval(() => {
             const width = gl.measureText(DEFAULT_TEXT).width;
 
             console.log('Final width', width);
 
             if (width === Fonts.browserDefaults.customWidth) {
-              clearTimeout(timeout)
-              clearInterval(interval);
+              clean();
               load();
             }
 
@@ -439,13 +461,12 @@ class Fonts {
               // someone loaded default font, display it
             // }
 
-            clearTimeout(timeout)
-            clearInterval(interval);
+            clean();
             callback(font);
           }, 50);
 
           var timeout = setTimeout(() => {
-            clearInterval(interval);
+            clean();
             callback(font);
           }, 500);
         }, () => load());
