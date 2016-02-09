@@ -165,7 +165,7 @@ export function parseStylesheet(content) {
 
     while (pair = R_CSS_PAIR.exec(faceData)) {
       const prop = pair[1].replace('font-', '');
-      const val = prop[2];
+      const val = pair[2];
 
       if (prop === 'unicode-range') {
         font.unicodeRange = val;
