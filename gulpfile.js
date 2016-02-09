@@ -43,14 +43,14 @@ gulp.task('build:browser-min', () => {
 
 gulp.task('build', gulp.series('build:node', 'build:browser', 'build:browser-min'));
 
-gulp.task('watch:node', () => {
+gulp.task('watch:node', gulp.series('build:node', () => {
   gulp.watch(['src/*.js'], gulp.series('build:node'));
-});
+}));
 
 
-gulp.task('watch:browser', () => {
+gulp.task('watch:browser', gulp.series('build:browser', () => {
   gulp.watch(['src/*.js'], gulp.series('build:browser'));
-});
+}));
 
 gulp.task('clean', () => {
   return del(['src/*.js']);

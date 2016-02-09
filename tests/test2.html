@@ -1,0 +1,59 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1">
+
+<p id="dom">hello</p>
+<canvas id="canvas"></canvas>
+
+<style>
+  #canvas { width: 800; height: 400; }
+  body.fonts #dom { font-family: 'Montserrat'; }
+</style>
+
+
+<div id="console"></div>
+
+<script>
+  // if (navigator.userAgent.match(/Android|iOS|iPhone|iPad/)) {
+    window.onerror = function(a, b, c) {
+      alert([a, b, c]);
+    };
+
+    window.console = {
+      log: function() {
+        var a = [].map.call(arguments, function(a) {
+          return JSON.stringify(a, null, '  ');
+        }).join(' ');
+
+        var b = document.createElement('p');
+        b.textContent = a;
+
+        document.querySelector('#console').appendChild(b);
+      }
+    };
+  // }
+</script>
+
+
+<script src="../dist/ultimate-fonts-loading.js"></script>
+
+<script>
+  function draw() {
+      var canvas = document.getElementById('canvas');
+      var c = canvas.getContext('2d');
+      c.save();
+      c.fillStyle = 'black';
+      c.font = '80px Montserrat';
+      c.textBaseline = 'bottom';
+      c.translate(20, 40);
+      c.rotate(0.1);
+      c.fillText('hello world', 20, 20);
+      c.restore();
+  }
+  draw();
+
+  Fonts.load('https://fonts.googleapis.com/css?family=Montserrat', function() {
+    document.body.className = 'fonts';
+    console.log('loaded');
+    draw();
+  }, function() { console.log('not loaded') });
+</script>

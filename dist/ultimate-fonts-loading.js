@@ -16,6 +16,7 @@ exports.loadFile = loadFile;
 exports.parseStylesheet = parseStylesheet;
 exports.parseUrlSrc = parseUrlSrc;
 exports.createLoaderElement = createLoaderElement;
+exports.createCanvas = createCanvas;
 exports.getBrowserDefaults = getBrowserDefaults;
 exports.checkFont = checkFont;
 exports.injectFont = injectFont;
@@ -43,7 +44,11 @@ var mimes = {
 var DEFAULT_TEXT = 'test@';
 var NO_FONT = 'local(\'there_is_no_font\')';
 
+var win = window;
+var doc = document;
+
 var testId = 0;
+var browserDefaults = null;
 
 var getFontFamily = function getFontFamily() {
   return 'font_test' + testId++;
@@ -53,19 +58,7 @@ var getFontType = function getFontType(font, family) {
   return (font.style || '') + ' ' + (font.variant || '') + ' ' + (font.weight || '') + ' ' + (font.stretch || '') + ' 48px ' + (family || font.family);
 };
 
-var wrap = function wrap(obj) {
-  return JSON.stringify(obj, null, '  ');
-};
-
-var browserDefaults = null;
-
-function create(family, source, descriptor) {
-  if (USE_FONTS_API && document.fonts && window.FontFace) {
-    return new FontAPI(new FontFace(family, source, descriptor));
-  }
-
-  return new FontShim(family, source, descriptor);
-}
+function create() {}
 
 function loadFontData(url, callback, errback) {
   var xhr = new XMLHttpRequest();
@@ -114,7 +107,7 @@ function loadFontData(url, callback, errback) {
       } catch (e) {
         console.log('1', e.message);
         try {
-          var BlobBuilder = window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder;
+          var BlobBuilder = win.WebKitBlobBuilder || win.MozBlobBuilder || win.MSBlobBuilder;
           var builder = new BlobBuilder();
 
           builder.append(response);
@@ -127,20 +120,24 @@ function loadFontData(url, callback, errback) {
         }
       }
     } else {
-      string = response;
+      // Fallback here to browser's default fonts loading
+      // e.g. inject font-face as is and call `callback`
+      // throw for now
+
+      throw new Error('#2');
     }
 
     var url = undefined;
 
     callback({
       getUrl: function getUrl() {
-        if (url) return url;
-
-        if (blob) {
-          url = (window.URL || window.webkitURL).createObjectURL(blob);
-        } else {
-          url = 'data:' + mimes[ext] + ';base64,' + btoa(string);
-        }
+        if (url) {
+          // do nothing
+        } else if (blob) {
+            url = (win.URL || win.webkitURL).createObjectURL(blob);
+          } else {
+            url = 'data:' + mimes[ext] + ';base64,' + btoa(string);
+          }
 
         return url;
       },
@@ -188,13 +185,14 @@ function parseStylesheet(content) {
 
     while (pair = R_CSS_PAIR.exec(faceData)) {
       var prop = pair[1].replace('font-', '');
+      var val = prop[2];
 
       if (prop === 'unicode-range') {
-        font.unicodeRange = pair[2];
+        font.unicodeRange = val;
       } else if (prop === 'feature-settings') {
-        font.featureSettings = pair[2];
+        font.featureSettings = val;
       } else {
-        font[prop] = prop === 'family' ? pair[2].replace(/'|"/g, '') : pair[2];
+        font[prop] = prop === 'family' ? val.replace(/'|"/g, '') : val;
       }
     }
 
@@ -215,24 +213,30 @@ function parseUrlSrc(urlSrc) {
 }
 
 function createLoaderElement(fontType) {
-  var elem = document.createElement('span');
+  var elem = doc.createElement('span');
 
   elem.style.display = 'inline';
   elem.style.font = fontType;
   elem.style.position = 'absolute';
-  elem.style.top = '-1000px';
-  elem.style.left = '-1000px';
-  elem.style.visibility = 'hidden';
+  // elem.style.top = '-1000px';
+  // elem.style.left = '-1000px';
+  // elem.style.visibility = 'hidden';
   elem.textContent = DEFAULT_TEXT;
 
-  document.body.appendChild(elem);
-
+  doc.body.appendChild(elem);
   return elem;
+}
+
+function createCanvas(fontType) {
+  var gl = doc.createElement('canvas').getContext('2d');
+  gl.font = fontType;
+
+  return gl;
 }
 
 function getBrowserDefaults() {
   var immediateSource = NO_FONT;
-  var loadingSource = NO_FONT + ', url(data:font/opentype;base64,1) format(\'opentype\')';
+  var loadingSource = NO_FONT + (', url(' + mimes.otf + ';base64,1) format(\'opentype\')');
   var customSource = NO_FONT + ', ' + CUSTOM_FONT;
 
   var family = getFontFamily();
@@ -241,10 +245,7 @@ function getBrowserDefaults() {
   var fontType = '48px ' + family;
   var elem = createLoaderElement(fontType);
 
-  var canvas = document.createElement('canvas');
-  var gl = canvas.getContext('2d');
-  gl.font = fontType;
-
+  var gl = createCanvas(fontType);
   var fallbackWidth = gl.measureText(DEFAULT_TEXT).width;
 
   {
@@ -302,10 +303,7 @@ function checkFont(font) {
   // const source = `url(AdobeBlank.otf) format('opentype')`;
   // const source = CUSTOM_FONT;
   var fontType = injectFont(family, source, font);
-
-  var canvas = document.createElement('canvas');
-  var gl = canvas.getContext('2d');
-  gl.font = fontType;
+  var gl = createCanvas(fontType);
 
   var width = gl.measureText(DEFAULT_TEXT).width;
   console.log('check font', width, browserDefaults);
@@ -328,7 +326,7 @@ function injectFont(family, source, font) {
   injectFontFace(family, source, font);
 
   var fontType = getFontType(font, family);
-  var elem = createLoaderElement(fontType);
+  createLoaderElement(fontType);
 
   return fontType;
 }
@@ -345,11 +343,12 @@ function injectFontFace(family, source, desc) {
 
   var code = '@font-face {\n    ' + fields.join('\n') + '\n  }';
 
-  var style = document.createElement('style');
+  var style = doc.createElement('style');
   style.textContent = code;
 
-  document.querySelector('head').appendChild(style);
-  style.appendChild(document.createTextNode(''));
+  doc.querySelector('head').appendChild(style);
+  // IE hack, force apply style
+  doc.documentMode && style.appendChild(doc.createTextNode(''));
 }
 
 function load(stylesheet, callback, errback) {
@@ -357,7 +356,7 @@ function load(stylesheet, callback, errback) {
   var load = function load(content) {
     var fonts = parseStylesheet(content);
 
-    if (USE_FONTS_API && document.fonts) {
+    if (USE_FONTS_API && doc.fonts) {
       nativeLoadFonts(content, fonts, callback, errback);
     } else {
       loadFonts(fonts, callback, errback);
@@ -372,10 +371,10 @@ function load(stylesheet, callback, errback) {
 }
 
 function nativeLoadFonts(stylesheet, fonts, callback, errback) {
-  var style = document.createElement('style');
+  var style = doc.createElement('style');
   style.textContent = stylesheet;
 
-  document.querySelector('head').appendChild(style);
+  doc.querySelector('head').appendChild(style);
 
   var promises = [];
   var used = {};
@@ -389,7 +388,7 @@ function nativeLoadFonts(stylesheet, fonts, callback, errback) {
 
     console.log('Loading font:', fontType);
 
-    promises.push(document.fonts.load(fontType, DEFAULT_TEXT));
+    promises.push(doc.fonts.load(fontType, DEFAULT_TEXT));
   }
 
   Promise.all(promises).then(callback, errback);
@@ -412,13 +411,13 @@ function loadFonts(fonts, callback, errback) {
 }
 
 function loadFont(font, callback, errback) {
-  if (USE_FONTS_API && document.fonts && window.FontFace) {
+  if (USE_FONTS_API && doc.fonts && win.FontFace) {
     console.log(font.family, font.src, font);
     var fontFace = new FontFace(font.family, font.src, font);
 
     fontFace.load().then(function () {
       console.log('Promise success');
-      document.fonts.add(fontFace);
+      doc.fonts.add(fontFace);
 
       callback(font);
     }, function (e) {
@@ -482,10 +481,7 @@ function loadFont(font, callback, errback) {
       source += ', ' + CUSTOM_FONT;
 
       var fontType = injectFont(font.family, source, font);
-
-      var canvas = document.createElement('canvas');
-      var gl = canvas.getContext('2d');
-      gl.font = fontType;
+      var gl = createCanvas(fontType);
 
       var clean = function clean() {
         clearTimeout(timeout);
@@ -531,22 +527,25 @@ function loadFont(font, callback, errback) {
 
 function Font(source, family, weight, style) {
   if (!source) return;
-  if (!(this instanceof Font)) throw new Error('');
+  // Save bytes
+  var _this = this;
+
+  if (!(_this instanceof Font)) throw new Error('#3');
 
   if (typeof family === 'string') {
-    this.src = source;
-    this.family = family;
-    this.weight = weight;
-    this.style = style;
+    _this.src = source;
+    _this.family = family;
+    _this.weight = weight;
+    _this.style = style;
   } else {
-    this.src = source.src;
-    this.family = source.family;
-    this.weight = source.weight;
-    this.style = source.style;
-    this.stretch = source.stretch;
-    this.variant = source.variant;
-    this.unicodeRange = source.unicodeRange;
-    this.featureSettings = source.featureSettings;
+    _this.src = source.src;
+    _this.family = source.family;
+    _this.weight = source.weight;
+    _this.style = source.style;
+    _this.stretch = source.stretch;
+    _this.variant = source.variant;
+    _this.unicodeRange = source.unicodeRange;
+    _this.featureSettings = source.featureSettings;
   }
 }
 

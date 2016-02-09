@@ -1,0 +1,58 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1">
+
+<div>Here is an icon <i class="flaticon solid user-2"></i>
+<div class="result" ></div>
+
+<style>
+  body.fonts .flaticon.solid:before {
+    font-family: 'test';
+    font-style: normal;
+    font-weight: normal;
+  }
+
+  body.fonts  .flaticon.solid.user-2:before { content: "\e0ca"; }
+</style>
+
+<script type="text/html" id="style">
+  @font-face {
+    font-family: 'Test';
+    src: url('https://s3.amazonaws.com/waggl-jsfiddle/flaticons-solid.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+  }
+</script>
+
+
+<div id="console"></div>
+
+<script>
+  // if (navigator.userAgent.match(/Android|iOS|iPhone|iPad/)) {
+    window.onerror = function(a, b, c) {
+      alert([a, b, c]);
+    };
+
+    window.console = {
+      log: function() {
+        var a = [].map.call(arguments, function(a) {
+          return JSON.stringify(a, null, '  ');
+        }).join(' ');
+
+        var b = document.createElement('p');
+        b.textContent = a;
+
+        document.querySelector('#console').appendChild(b);
+      }
+    };
+  // }
+</script>
+
+
+<script src="../dist/ultimate-fonts-loading.js"></script>
+
+<script>
+  Fonts.load(document.querySelector('#style').textContent, function() {
+    document.body.className = 'fonts';
+    console.log('loaded');
+  }, function() { console.log('not loaded') });
+</script>

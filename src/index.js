@@ -1,4 +1,4 @@
-const CUSTOM_FONT = `url(data:font/opentype;base64,AAEAAAAKAIAAAwAgT1MvMgSEBCEAAAEoAAAATmNtYXAADABzAAABgAAAACxnbHlmCAE5AgAAAbQAAAAUaGVhZARxAiIAAACsAAAANmhoZWEIAQQDAAAA5AAAACRobXR4BAAAAAAAAXgAAAAIbG9jYQAKAAAAAAGsAAAABm1heHAABAACAAABCAAAACBuYW1lACMIXgAAAcgAAAAgcG9zdAADAAAAAAHoAAAAIAABAAAAAQAAayoF118PPPUAAgQAAAAAANBme+sAAAAA0PVBQgAAAAAEAAQAAAAAAAACAAAAAAAAAAEAAAQAAAAAAAQAAAAAAAQAAAEAAAAAAAAAAAAAAAAAAAACAAEAAAACAAIAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGQAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAIAQAAAAAAAQAAAAAAAAAAAAEAAAAAAAAAQADAAEAAAAMAAQAIAAAAAQABAABAAAAQP//AAAAQP///8EAAQAAAAAAAAAAAAoAAAABAAAAAAQABAAAAQAAMQEEAAQAAAAAAgAeAAMAAQQJAAEAAgAAAAMAAQQJAAIAAgAAAEAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('opentype')`
+const CUSTOM_FONT = `url(data:font/opentype;base64,AAEAAAAKAIAAAwAgT1MvMgSEBCEAAAEoAAAATmNtYXAADABzAAABgAAAACxnbHlmCAE5AgAAAbQAAAAUaGVhZARxAiIAAACsAAAANmhoZWEIAQQDAAAA5AAAACRobXR4BAAAAAAAAXgAAAAIbG9jYQAKAAAAAAGsAAAABm1heHAABAACAAABCAAAACBuYW1lACMIXgAAAcgAAAAgcG9zdAADAAAAAAHoAAAAIAABAAAAAQAAayoF118PPPUAAgQAAAAAANBme+sAAAAA0PVBQgAAAAAEAAQAAAAAAAACAAAAAAAAAAEAAAQAAAAAAAQAAAAAAAQAAAEAAAAAAAAAAAAAAAAAAAACAAEAAAACAAIAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGQAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAIAQAAAAAAAQAAAAAAAAAAAAEAAAAAAAAAQADAAEAAAAMAAQAIAAAAAQABAABAAAAQP//AAAAQP///8EAAQAAAAAAAAAAAAoAAAABAAAAAAQABAAAAQAAMQEEAAQAAAAAAgAeAAMAAQQJAAEAAgAAAAMAAQQJAAIAAgAAAEAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('opentype')`;
 
 const R_FONT_FACE = /\@font-face\s+\{([\s\S]*?)\}/g;
 const R_CSS_PAIR = /^\s*([a-zA-Z\-]+)\s*:\s*([\s\S]+?)\s*;?$/mg;
@@ -16,7 +16,12 @@ const mimes = {
 const DEFAULT_TEXT = 'test@';
 const NO_FONT = `local('there_is_no_font')`;
 
+
+const win = window;
+const doc = document;
+
 let testId = 0;
+let browserDefaults = null;
 
 const getFontFamily = () => {
   return 'font_test' + testId++;
@@ -26,20 +31,8 @@ const getFontType = (font, family) => {
   return `${ font.style || '' } ${ font.variant || '' } ${ font.weight || '' } ${ font.stretch || '' } 48px ${ family || font.family }`
 };
 
-const wrap = (obj) => {
-  return JSON.stringify(obj, null, '  ');
-}
-
-let browserDefaults = null;
-
-export function create(family, source, descriptor) {
-  if (USE_FONTS_API && document.fonts && window.FontFace) {
-    return new FontAPI(
-      new FontFace(family, source, descriptor)
-    );
-  }
-
-  return new FontShim(family, source, descriptor);
+export function create() {
+  
 }
 
 export function loadFontData(url, callback, errback) {
@@ -91,7 +84,7 @@ export function loadFontData(url, callback, errback) {
       } catch (e) {
         console.log('1', e.message);
         try {
-          const BlobBuilder = window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder;
+          const BlobBuilder = win.WebKitBlobBuilder || win.MozBlobBuilder || win.MSBlobBuilder;
           let builder = new BlobBuilder();
 
           builder.append(response);
@@ -106,17 +99,21 @@ export function loadFontData(url, callback, errback) {
     }
 
     else {
-      string = response
+      // Fallback here to browser's default fonts loading
+      // e.g. inject font-face as is and call `callback`
+      // throw for now
+
+      throw new Error('#2');
     }
 
     let url;
 
     callback({
       getUrl() {
-        if (url) return url;
-
-        if (blob) {
-          url = (window.URL || window.webkitURL).createObjectURL(blob);
+        if (url) {
+          // do nothing
+        } else if (blob) {
+          url = (win.URL || win.webkitURL).createObjectURL(blob);
         } else {
           url = `data:${ mimes[ext] };base64,` + btoa(string);
         }
@@ -141,7 +138,7 @@ export function loadFontData(url, callback, errback) {
 }
 
 export function loadFile(url, callback, errback) {
-  var xhr = new XMLHttpRequest();
+  const xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
 
   xhr.onload = () => {
@@ -168,13 +165,14 @@ export function parseStylesheet(content) {
 
     while (pair = R_CSS_PAIR.exec(faceData)) {
       const prop = pair[1].replace('font-', '');
+      const val = prop[2];
 
       if (prop === 'unicode-range') {
-        font.unicodeRange = pair[2];
+        font.unicodeRange = val;
       } else if (prop === 'feature-settings') {
-        font.featureSettings = pair[2];
+        font.featureSettings = val;
       } else {
-        font[prop] = prop === 'family' ? pair[2].replace(/'|"/g, '') : pair[2];
+        font[prop] = prop === 'family' ? val.replace(/'|"/g, '') : val;
       }
     }
 
@@ -198,24 +196,30 @@ export function parseUrlSrc(urlSrc) {
 }
 
 export function createLoaderElement(fontType) {
-  const elem = document.createElement('span');
+  const elem = doc.createElement('span');
 
   elem.style.display = 'inline';
   elem.style.font = fontType;
   elem.style.position = 'absolute';
-  elem.style.top = '-1000px';
-  elem.style.left = '-1000px';
-  elem.style.visibility = 'hidden';
+  // elem.style.top = '-1000px';
+  // elem.style.left = '-1000px';
+  // elem.style.visibility = 'hidden';
   elem.textContent = DEFAULT_TEXT;
 
-  document.body.appendChild(elem);
-
+  doc.body.appendChild(elem);
   return elem;
+}
+
+export function createCanvas(fontType) {
+  const gl = doc.createElement('canvas').getContext('2d');
+  gl.font = fontType;
+
+  return gl;
 }
 
 export function getBrowserDefaults() {
   const immediateSource = NO_FONT;
-  const loadingSource   = NO_FONT + `, url(data:font/opentype;base64,1) format('opentype')`;
+  const loadingSource   = NO_FONT + `, url(${ mimes.otf };base64,1) format('opentype')`;
   const customSource    = NO_FONT + `, ` + CUSTOM_FONT;
 
   let family = getFontFamily();
@@ -224,10 +228,7 @@ export function getBrowserDefaults() {
   let fontType = '48px ' + family;
   let elem = createLoaderElement(fontType);
 
-  const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('2d');
-  gl.font = fontType;
-
+  const gl = createCanvas(fontType);
   const fallbackWidth = gl.measureText(DEFAULT_TEXT).width;
 
   {
@@ -285,10 +286,7 @@ export function checkFont(font) {
   // const source = `url(AdobeBlank.otf) format('opentype')`;
   // const source = CUSTOM_FONT;
   const fontType = injectFont(family, source, font);
-
-  const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('2d');
-  gl.font = fontType;
+  const gl = createCanvas(fontType);
 
   const width = gl.measureText(DEFAULT_TEXT).width;
   console.log('check font', width, browserDefaults);
@@ -318,8 +316,8 @@ export function checkFont(font) {
 export function injectFont(family, source, font) {
   injectFontFace(family, source, font);
 
-  let fontType = getFontType(font, family);
-  let elem = createLoaderElement(fontType);
+  const fontType = getFontType(font, family);
+  createLoaderElement(fontType);
 
   return fontType;
 }
@@ -341,11 +339,12 @@ export function injectFontFace(family, source, desc) {
     ${ fields.join('\n') }
   }`;
 
-  const style = document.createElement('style');
+  const style = doc.createElement('style');
   style.textContent = code;
 
-  document.querySelector('head').appendChild(style);
-  style.appendChild(document.createTextNode(''));
+  doc.querySelector('head').appendChild(style);
+  // IE hack, force apply style
+  doc.documentMode && style.appendChild(doc.createTextNode(''));
 }
 
 export function load(stylesheet, callback, errback) {
@@ -353,7 +352,7 @@ export function load(stylesheet, callback, errback) {
   const load = (content) => {
     const fonts = parseStylesheet(content);
 
-    if (USE_FONTS_API && document.fonts) {
+    if (USE_FONTS_API && doc.fonts) {
       nativeLoadFonts(content, fonts, callback, errback);
     } else {
       loadFonts(fonts, callback, errback);
@@ -368,10 +367,10 @@ export function load(stylesheet, callback, errback) {
 }
 
 export function nativeLoadFonts(stylesheet, fonts, callback, errback) {
-  var style = document.createElement('style');
+  const style = doc.createElement('style');
   style.textContent = stylesheet;
 
-  document.querySelector('head').appendChild(style);
+  doc.querySelector('head').appendChild(style);
 
   const promises = [];
   const used = {};
@@ -386,7 +385,7 @@ export function nativeLoadFonts(stylesheet, fonts, callback, errback) {
     console.log('Loading font:', fontType);
 
     promises.push(
-      document.fonts.load(fontType, DEFAULT_TEXT)
+      doc.fonts.load(fontType, DEFAULT_TEXT)
     );
   }
 
@@ -410,13 +409,13 @@ export function loadFonts(fonts, callback, errback) {
 }
 
 export function loadFont(font, callback, errback) {
-  if (USE_FONTS_API && document.fonts && window.FontFace) {
+  if (USE_FONTS_API && doc.fonts && win.FontFace) {
     console.log(font.family, font.src, font);
     var fontFace = new FontFace(font.family, font.src, font);
 
     fontFace.load().then(() => {
       console.log('Promise success');
-      document.fonts.add(fontFace);
+      doc.fonts.add(fontFace);
 
       callback(font);
     }, (e) => {
@@ -478,10 +477,7 @@ export function loadFont(font, callback, errback) {
       source += ', ' + CUSTOM_FONT
 
       const fontType = injectFont(font.family, source, font);
-
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('2d');
-      gl.font = fontType;
+      const gl = createCanvas(fontType);
 
       const clean = () => {
         clearTimeout(timeout)
@@ -526,22 +522,25 @@ export function loadFont(font, callback, errback) {
 
 export function Font(source, family, weight, style) {
   if (!source) return;
-  if (!(this instanceof Font)) throw new Error('');
+  // Save bytes
+  const _this = this;
+
+  if (!(_this instanceof Font)) throw new Error('#3');
 
   if (typeof family === 'string') {
-    this.src = source;
-    this.family = family;
-    this.weight = weight;
-    this.style = style;
+    _this.src = source;
+    _this.family = family;
+    _this.weight = weight;
+    _this.style = style;
   } else {
-    this.src = source.src;
-    this.family = source.family;
-    this.weight = source.weight;
-    this.style = source.style;
-    this.stretch = source.stretch;
-    this.variant = source.variant;
-    this.unicodeRange = source.unicodeRange;
-    this.featureSettings = source.featureSettings;
+    _this.src = source.src;
+    _this.family = source.family;
+    _this.weight = source.weight;
+    _this.style = source.style;
+    _this.stretch = source.stretch;
+    _this.variant = source.variant;
+    _this.unicodeRange = source.unicodeRange;
+    _this.featureSettings = source.featureSettings;
   }
 }
 
