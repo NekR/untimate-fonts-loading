@@ -1,5 +1,3 @@
-const CUSTOM_FONT = `url(data:font/opentype;base64,AAEAAAAKAIAAAwAgT1MvMgSEBCEAAAEoAAAATmNtYXAADABzAAABgAAAACxnbHlmCAE5AgAAAbQAAAAUaGVhZARxAiIAAACsAAAANmhoZWEIAQQDAAAA5AAAACRobXR4BAAAAAAAAXgAAAAIbG9jYQAKAAAAAAGsAAAABm1heHAABAACAAABCAAAACBuYW1lACMIXgAAAcgAAAAgcG9zdAADAAAAAAHoAAAAIAABAAAAAQAAayoF118PPPUAAgQAAAAAANBme+sAAAAA0PVBQgAAAAAEAAQAAAAAAAACAAAAAAAAAAEAAAQAAAAAAAQAAAAAAAQAAAEAAAAAAAAAAAAAAAAAAAACAAEAAAACAAIAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGQAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAIAQAAAAAAAQAAAAAAAAAAAAEAAAAAAAAAQADAAEAAAAMAAQAIAAAAAQABAABAAAAQP//AAAAQP///8EAAQAAAAAAAAAAAAoAAAABAAAAAAQABAAAAQAAMQEEAAQAAAAAAgAeAAMAAQQJAAEAAgAAAAMAAQQJAAIAAgAAAEAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('opentype')`;
-
 const R_FONT_FACE = /\@font-face\s+\{([\s\S]*?)\}/g;
 const R_CSS_PAIR = /^\s*([a-zA-Z\-]+)\s*:\s*([\s\S]+?)\s*;?$/mg;
 const R_URL_SRC = /^\s*url\(([\s\S]*?)\)(?:\s+format\(([\s\S]*?)\))?\s*$/;
@@ -15,6 +13,7 @@ const mimes = {
 
 const DEFAULT_TEXT = 'test';
 const NO_FONT = `local('there_is_no_font')`;
+const FAKE_FONT = `url(data:${ mimes.otf };base64,1) format('opentype')`;
 const FONT_SIZE = '48px ';
 
 const FEATURE_SETTINGS = 'featureSettings';
@@ -237,8 +236,7 @@ export function getBrowserDefaults(font) {
   }
 
   const immediateSource = NO_FONT;
-  const loadingSource   = NO_FONT + `, url(data:${ mimes.otf };base64,1) format('opentype')`;
-  const customSource    = NO_FONT + `, ` + CUSTOM_FONT;
+  const loadingSource   = NO_FONT + `, ${ FAKE_FONT }`;
 
   let family = getFontFamily();
   injectFontFace(family, immediateSource, {});
@@ -262,23 +260,10 @@ export function getBrowserDefaults(font) {
 
   const loadingWidth = gl.measureText(font.text).width;
   const hasLoadingWidth = fallbackWidth !== loadingWidth;
-  let customWidth;
-
-  // if (!hasLoadingWidth) {
-    family = getFontFamily();
-    injectFontFace(family, customSource, {});
-
-    fontType = FONT_SIZE + family;
-    // elem = createLoaderElement(fontType, font.text);
-    elem.style.font = fontType;
-    gl.font = fontType;
-
-    customWidth = gl.measureText(font.text).width;
-  // }
 
   const defaults = defaultsMap[font.text] = {
     fallbackWidth, loadingWidth,
-    customWidth, hasLoadingWidth,
+    hasLoadingWidth,
     gl, font: fallbackType
   };
 
@@ -288,17 +273,17 @@ export function getBrowserDefaults(font) {
   return defaults;
 }
 
-export function drawBrowserDefaults(browserDefaults, text) {
+export function drawBrowserDefaults(browserDefaults, font) {
   if (browserDefaults.buffer) return;
 
   browserDefaults.gl.font = browserDefaults.font;
   browserDefaults.gl.textAlign = 'left';
   browserDefaults.gl.textBaseline = 'bottom';
-  browserDefaults.gl.fillText(text, 0, 50);
+  browserDefaults.gl.fillText(font.text, 0, 50);
   browserDefaults.buffer = getVisualBuffer(browserDefaults.gl);
 }
 
-export function checkFont(font) {
+export function hasFont(font) {
   const browserDefaults = getBrowserDefaults(font);
 
   if (!font.localSrc.length) {
@@ -311,8 +296,8 @@ export function checkFont(font) {
   // const source = font.localSrc.join(', ') + `, url(${ BLANK_FONT }) format('opentype')`;
   // const source = `local('there_is_no_font') url(data:font/opentype;base64,1) format('opentype')`;
   // const source = font.localSrc.join(', ');
-  // const source = font.localSrc.join(', ') + `, url(data:font/opentype;base64,1) format('opentype')`;
-  const source = font.localSrc.join(', ') + ', ' + CUSTOM_FONT;
+  const source = font.localSrc.join(', ') + `, ${ FAKE_FONT }`;
+  // const source = font.localSrc.join(', ') + ', ' + CUSTOM_FONT;
   // const source = `url(AdobeBlank.otf) format('opentype')`;
   // const source = CUSTOM_FONT;
   const fontType = injectFont(family, source, font);
@@ -321,23 +306,23 @@ export function checkFont(font) {
   const width = gl.measureText(font.text).width;
   console.log('check font', width, browserDefaults);
 
-  // Loading with is reported only when there is no local font (loading external)
-  if (
-    browserDefaults.hasLoadingWidth &&
-    width !== browserDefaults.loadingWidth &&
-    width !== browserDefaults.customWidth
-  ) {
-    console.log('Exists because not loading with');
+  if (browserDefaults.hasLoadingWidth && width !== browserDefaults.loadingWidth) {
     return true;
   }
 
-  if (
-    !browserDefaults.hasLoadingWidth &&
-    width !== browserDefaults.fallbackWidth &&
-    width !== browserDefaults.customWidth
-  ) {
-    console.log('Exists because not fallback and not custom');
-    return true;
+  if (width === browserDefaults.fallbackWidth) {
+    gl.textAlign = 'left';
+    gl.textBaseline = 'bottom';
+    drawBrowserDefaults(browserDefaults, font);
+
+    gl.clearRect(0, 0, 50, 50);
+    gl.fillText(font.text, 0, 50);
+
+    // If buffers differs, them font exists, i.e. not fallback
+    return !compareVisualBuffers(
+      browserDefaults.buffer,
+      getVisualBuffer(gl)
+    );
   }
 
   return false;
@@ -441,6 +426,8 @@ export function loadFonts(fonts, callback, errback) {
 }
 
 export function loadFont(font, callback, errback) {
+  console.log('Load font', font);
+
   if (USE_FONTS_API && doc.fonts && win.FontFace) {
     console.log(font.family, font.src, font);
     var fontFace = new FontFace(font.family, font.src, font);
@@ -460,7 +447,10 @@ export function loadFont(font, callback, errback) {
 
   font.parseSources();
 
-  const check = checkFont(font);
+  // debugger;
+  const check = hasFont(font);
+
+  console.log('Font exists locally:', check);
 
   if (check) {
     // inject with right family
@@ -506,16 +496,15 @@ export function loadFont(font, callback, errback) {
 
       console.log('Loading source:', source);
 
-      source += ', ' + CUSTOM_FONT
-
       const fontType = injectFont(font.family, source, font);
+      // const fontType = getFontType(font, font.family);
       const gl = createCanvas(fontType);
       const browserDefaults = getBrowserDefaults(font);
 
       let prepareVisualCheck = () => {
         gl.textAlign = 'left';
         gl.textBaseline = 'bottom';
-        drawBrowserDefaults(browserDefaults, font.text);
+        drawBrowserDefaults(browserDefaults, font);
       };
 
       const clean = () => {
@@ -529,12 +518,6 @@ export function loadFont(font, callback, errback) {
 
         console.log('Final width', width);
 
-        if (width === browserDefaults.customWidth) {
-          clean();
-          load();
-          return;
-        }
-
         if (
           width === browserDefaults.loadingWidth &&
           browserDefaults.hasLoadingWidth
@@ -544,7 +527,7 @@ export function loadFont(font, callback, errback) {
           return;
         }
 
-        fallback: if (width === browserDefaults.fallbackWidth) {
+        fallback: if (true || width === browserDefaults.fallbackWidth) {
           if (prepareVisualCheck) {
             prepareVisualCheck();
             prepareVisualCheck = null;
@@ -553,19 +536,15 @@ export function loadFont(font, callback, errback) {
           gl.clearRect(0, 0, 50, 50);
           gl.fillText(font.text, 0, 50);
 
-          const fallbackBuffer = browserDefaults.buffer;
-          const currentBuffer = getVisualBuffer(gl);
-          const length = currentBuffer.length;
-
-          for (let i = 3; i < length; i += 4) {
-            if (currentBuffer[i] !== fallbackBuffer[i]) {
-              console.log('Visually match');
-              break fallback;
-            }
+          if (compareVisualBuffers(
+            browserDefaults.buffer,
+            getVisualBuffer(gl)
+          )) {
+            console.log('Visual buffers are same');
+            return;
           }
 
-          console.log(`Didn't match visually`);
-          return;
+          console.log('Visual buffers are different, font loaded');
         }
 
         clean();
@@ -582,8 +561,20 @@ export function loadFont(font, callback, errback) {
   load();
 }
 
-export function getVisualBuffer(gl) {
+function getVisualBuffer(gl) {
   return gl.getImageData(0, 0, 50, 50).data;
+}
+
+function compareVisualBuffers(firstBuffer, secondBuffer) {
+  const length = firstBuffer.length;
+
+  for (let i = 3; i < length; i += 4) {
+    if (firstBuffer[i] !== secondBuffer[i]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
