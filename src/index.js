@@ -215,7 +215,7 @@ export function parseUrlSrc(urlSrc) {
   ];
 }
 
-export function createLoaderElement(fontType, text) {
+function createLoaderElement(fontType, text) {
   const elem = doc.createElement('div');
 
   elem.style.font = fontType;
@@ -229,14 +229,14 @@ export function createLoaderElement(fontType, text) {
   return elem;
 }
 
-export function createCanvas(fontType) {
+function createCanvas(fontType) {
   const gl = doc.createElement('canvas').getContext('2d');
   gl.font = fontType;
 
   return gl;
 }
 
-export function getBrowserDefaults(font) {
+function getBrowserDefaults(font) {
   if (defaultsMap[font.text]) {
     return defaultsMap[font.text];
   }
@@ -293,7 +293,7 @@ export function getBrowserDefaults(font) {
   return defaults;
 }
 
-export function drawBrowserDefaults(browserDefaults, text) {
+function drawBrowserDefaults(browserDefaults, text) {
   if (browserDefaults.buffer) return;
 
   browserDefaults.gl.font = browserDefaults.font;
@@ -402,6 +402,10 @@ export function load(stylesheet, callback, errback) {
   } else {
     load(stylesheet);
   }
+}
+
+export function exists(family, weight, style) {
+  return hasFont(new Font(`local('${ family }'')`, null, weight, style));
 }
 
 export function nativeLoadFonts(stylesheet, fonts, callback, errback) {
