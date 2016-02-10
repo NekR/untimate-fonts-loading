@@ -1,0 +1,35 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1">
+
+<div>Here is an icon <i class="flaticon solid user-2"></i>
+<div class="result" ></div>
+
+<style>
+  body.fonts .flaticon.solid:before {
+    font-family: 'Test';
+    font-style: normal;
+    font-weight: normal;
+  }
+
+  body.fonts  .flaticon.solid.user-2:before { content: "\e0ca"; }
+</style>
+
+
+<script src="../lib/browser.js"></script>
+
+<script>
+  Fonts.setSample('normal normal Test', '\ue0ca');
+  Fonts.load(`
+    @font-face {
+      font-family: 'Test';
+      src: url('flaticons-solid.woff') format('woff');
+      font-weight: normal;
+      font-style: normal;
+    }
+  `, function() {
+    // document.body.className = 'fonts';
+    // console.log('loaded');
+  }, function() {
+    // console.log('not loaded');
+  });
+</script>

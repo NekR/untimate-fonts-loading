@@ -1,0 +1,33 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1">
+
+<style>
+  @font-face {
+    font-family: 'Test';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Roboto'), local('Roboto-Regular');
+  }
+</style>
+
+<style>
+ html, body {
+   font-family: monospace;
+ }
+
+ html #first {
+  font-family: Roboto;
+ }
+
+ html #second {
+  font-family: there_is_no_font;
+ }
+
+ html #third {
+  font-family: Test;
+ }
+</style>
+
+<div style="font-size: 60px;" id="first"> Test TEST blbdlbdlfbd @</div>
+<div style="font-size: 60px;" id="second"> Test TEST blbdlbdlfbd @</div>
+<div style="font-size: 60px;" id="third"> Test TEST blbdlbdlfbd @</div>

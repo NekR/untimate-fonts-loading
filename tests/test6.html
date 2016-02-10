@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>Web Font Loader</title>
+<!-- <link rel="stylesheet" href="http://fonts.googleapis.com/earlyaccess/kopubbatang.css"> -->
+<style>
+  body {
+    padding:1em 2em;
+  }
+
+  body.fonts {
+    font-family:'KoPub Batang', serif;
+  }
+
+  h1 {
+    font-weight: 700;
+  }
+
+  h2 {
+    font-weight: 400;
+  }
+
+  h3 {
+    font-weight: 300;
+  }
+</style>
+<script src="../lib/browser.js"></script>
+<script>
+  Fonts.setSample('normal 300 KoPub Batang', '제');
+  Fonts.setSample('normal 400 KoPub Batang', '제');
+  Fonts.setSample('normal 700 KoPub Batang', '제');
+
+  Fonts.load('http://fonts.googleapis.com/earlyaccess/kopubbatang.css', function() {
+    document.body.className = 'fonts';
+    console.log('loaded');
+  }, function(e) { console.log('not loaded:', e) });
+</script>
+</head>
+<body>
+
+<h1>샘플 H1의 제목</h1>
+<p>세계를 향한 대화, 유니코드로 하십시오. 제10회 유니코드 국제 회의가 1997년 3월 10일부터 12일까지 독일의 마인즈에서 열립니다. 지금 등록하십시오. 이 회의에서는 업계 전반의 전문가들이 함께 모여 다음과 같은 분야를 다룹니다. - 인터넷과 유니코드, 국제화와 지역화, 운영 체제와 응용 프로그램에서 유니코드의 구현, 글꼴, 문자 배열, 다국어 컴퓨팅.</p>
+
+<h2>샘플 H2의 제목</h2>
+<p>세계를 향한 대화, 유니코드로 하십시오. 제10회 유니코드 국제 회의가 1997년 3월 10일부터 12일까지 독일의 마인즈에서 열립니다. 지금 등록하십시오. 이 회의에서는 업계 전반의 전문가들이 함께 모여 다음과 같은 분야를 다룹니다. - 인터넷과 유니코드, 국제화와 지역화, 운영 체제와 응용 프로그램에서 유니코드의 구현, 글꼴, 문자 배열, 다국어 컴퓨팅.</p>
+
+<h3>샘플 H3의 제목</h3>
+<p>세계를 향한 대화, 유니코드로 하십시오. 제10회 유니코드 국제 회의가 1997년 3월 10일부터 12일까지 독일의 마인즈에서 열립니다. 지금 등록하십시오. 이 회의에서는 업계 전반의 전문가들이 함께 모여 다음과 같은 분야를 다룹니다. - 인터넷과 유니코드, 국제화와 지역화, 운영 체제와 응용 프로그램에서 유니코드의 구현, 글꼴, 문자 배열, 다국어 컴퓨팅.</p>
+<blockquote>
+  <h4>샘플 H4의 제목</h4>
+  세계를 향한 대화, 유니코드로 하십시오. 제10회 유니코드 국제 회의가 1997년 3월 10일부터 12일까지 독일의 마인즈에서 열립니다. 지금 등록하십시오. 이 회의에서는 업계 전반의 전문가들이 함께 모여 다음과 같은 분야를 다룹니다. - 인터넷과 유니코드, 국제화와 지역화, 운영 체제와 응용 프로그램에서 유니코드의 구현, 글꼴, 문자 배열, 다국어 컴퓨팅.
+</blockquote>
+<p>세계를 향한 대화, 유니코드로 하십시오. 제10회 유니코드 국제 회의가 1997년 3월 10일부터 12일까지 독일의 마인즈에서 열립니다. 지금 등록하십시오. 이 회의에서는 업계 전반의 전문가들이 함께 모여 다음과 같은 분야를 다룹니다. - 인터넷과 유니코드, 국제화와 지역화, 운영 체제와 응용 프로그램에서 유니코드의 구현, 글꼴, 문자 배열, 다국어 컴퓨팅.</p>
+
+</body>
+</html>

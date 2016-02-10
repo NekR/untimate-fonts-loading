@@ -1,16 +1,18 @@
 const CUSTOM_FONT = `url(data:font/opentype;base64,AAEAAAAKAIAAAwAgT1MvMgSEBCEAAAEoAAAATmNtYXAADABzAAABgAAAACxnbHlmCAE5AgAAAbQAAAAUaGVhZARxAiIAAACsAAAANmhoZWEIAQQDAAAA5AAAACRobXR4BAAAAAAAAXgAAAAIbG9jYQAKAAAAAAGsAAAABm1heHAABAACAAABCAAAACBuYW1lACMIXgAAAcgAAAAgcG9zdAADAAAAAAHoAAAAIAABAAAAAQAAayoF118PPPUAAgQAAAAAANBme+sAAAAA0PVBQgAAAAAEAAQAAAAAAAACAAAAAAAAAAEAAAQAAAAAAAQAAAAAAAQAAAEAAAAAAAAAAAAAAAAAAAACAAEAAAACAAIAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGQAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAIAQAAAAAAAQAAAAAAAAAAAAEAAAAAAAAAQADAAEAAAAMAAQAIAAAAAQABAABAAAAQP//AAAAQP///8EAAQAAAAAAAAAAAAoAAAABAAAAAAQABAAAAQAAMQEEAAQAAAAAAgAeAAMAAQQJAAEAAgAAAAMAAQQJAAIAAgAAAEAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==) format('opentype')`;
 
 const R_FONT_FACE = /\@font-face\s+\{([\s\S]*?)\}/g;
-const R_CSS_PAIR = /^\s*([a-zA-Z\-]+)\s*:\s*([\s\S]+?)\s*;?$/mg;
+const R_CSS_PAIR = /\s*([a-zA-Z\-]+)\s*:\s*([\s\S]+?)\s*(?:;|$)/g;
 const R_URL_SRC = /^\s*url\(([\s\S]*?)\)(?:\s+format\(([\s\S]*?)\))?\s*$/;
 
 const USE_FONTS_API = false;
 
 const mimes = {
-  woff: 'application/font-woff',
-  woff2: 'application/font-woff2',
+  // change font/woff to application/font-woff if there will be any errors
+  woff: 'font/woff',
+  woff2: 'font/woff2',
   otf: 'font/opentype',
-  ttf: 'application/x-font-ttf'
+  ttf: 'font/ttf',
+  eot: 'font/eot'
 };
 
 const DEFAULT_TEXT = 'test';
@@ -26,6 +28,9 @@ const CSS_FONT = 'font-';
 
 const win = window;
 const doc = document;
+
+const IS_IE = doc.documentMode;
+const IS_ANDROID_STOCK = 'isApplicationInstalled' in navigator;
 
 let testId = 0;
 let defaultsMap = {};
@@ -174,7 +179,7 @@ export function parseStylesheet(content) {
 
   while (face = R_FONT_FACE.exec(content)) {
     const font = new Font();
-    const faceData = face[1];
+    const faceData = face[1].trim();
     let pair;
 
     while (pair = R_CSS_PAIR.exec(faceData)) {
@@ -206,7 +211,7 @@ export function parseUrlSrc(urlSrc) {
 
   return [
     match[1].replace(/'|"/g, ''),
-    match[2]
+    match[2].replace(/'|"/g, '')
   ];
 }
 
@@ -374,13 +379,15 @@ export function injectFontFace(family, source, desc) {
 
   doc.querySelector('head').appendChild(style);
   // IE hack, force apply style
-  doc.documentMode && style.appendChild(doc.createTextNode(''));
+  IS_IE && style.appendChild(doc.createTextNode(''));
 }
 
 export function load(stylesheet, callback, errback) {
   const isURL = /^([a-zA-Z]+:)?\/\//.test(stylesheet);
   const load = (content) => {
     const { fonts, unicodeRange } = parseStylesheet(content);
+
+    console.log(fonts);
 
     if ((USE_FONTS_API || unicodeRange) && doc.fonts) {
       nativeLoadFonts(content, fonts, callback, errback);
@@ -477,7 +484,9 @@ export function loadFont(font, callback, errback) {
     return;
   }
 
-  if (!font.urlSrc.length) {
+  const urlSrc = font.urlSrc;
+
+  if (!urlSrc.length) {
     setTimeout(errback);
     return;
   }
@@ -485,15 +494,28 @@ export function loadFont(font, callback, errback) {
   let index = 0;
 
   const load = () => {
-    if (font.urlSrc.length === index) {
+    if (urlSrc.length === index) {
       setTimeout(errback)
       return;
     }
 
-    const fontUrl = parseUrlSrc(font.urlSrc[index++]);
+    const fontUrl = parseUrlSrc(urlSrc[index++]);
 
     if (!fontUrl[0]) {
       setTimeout(errback);
+      return;
+    }
+
+    const format = fontUrl[1];
+
+    if (
+      // eot ignored because IE cannot handle it properly
+      // woff2 ignored because only browsers with Font Loading API support it
+      format === 'embedded-opentype' ||
+      (format === 'woff2' && (IS_IE || urlSrc.length > 1)) ||
+      (format === 'woff' && IS_ANDROID_STOCK)
+    ) {
+      setTimeout(load);
       return;
     }
 
@@ -501,7 +523,7 @@ export function loadFont(font, callback, errback) {
       let source = `url(${ fontData.getUrl() })`;
 
       if (fontUrl[1]) {
-        source += ` format(${ fontUrl[1] })`;
+        source += ` format('${ format }')`;
       }
 
       console.log('Loading source:', source);
@@ -544,7 +566,7 @@ export function loadFont(font, callback, errback) {
           return;
         }
 
-        fallback: if (true || width === browserDefaults.fallbackWidth) {
+        fallback: if (width === browserDefaults.fallbackWidth) {
           if (prepareVisualCheck) {
             prepareVisualCheck();
             prepareVisualCheck = null;
