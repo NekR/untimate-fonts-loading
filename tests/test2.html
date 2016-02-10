@@ -34,7 +34,7 @@
 </script>
 
 
-<script src="../dist/ultimate-fonts-loading.js"></script>
+<script src="../lib/browser.js"></script>
 
 <script>
   function draw() {
@@ -51,9 +51,11 @@
   }
   draw();
 
+  Fonts.setSample('normal 400 Montserrat', 'zzz');
+
   Fonts.load('https://fonts.googleapis.com/css?family=Montserrat', function() {
     document.body.className = 'fonts';
     console.log('loaded');
     draw();
-  }, function() { console.log('not loaded') });
+  }, function(e) { console.log('not loaded:', e) });
 </script>

@@ -19,8 +19,8 @@ gulp.task('build:browser', () => {
       presets: ['es2015']
     }))
     .pipe(wrap('Fonts'))
-    .pipe(rename('ultimate-fonts-loading.js'))
-    .pipe(gulp.dest('dist'));
+    .pipe(rename('browser.js'))
+    .pipe(gulp.dest('lib'));
 });
 
 gulp.task('build:browser-min', () => {
@@ -29,7 +29,7 @@ gulp.task('build:browser-min', () => {
       presets: ['es2015']
     }))
     .pipe(wrap('Fonts'))
-    .pipe(rename('ultimate-fonts-loading.min.js'))
+    .pipe(rename('browser.min.js'))
     .pipe(uglify({
       compress: {
         warnings: false,
@@ -38,7 +38,7 @@ gulp.task('build:browser-min', () => {
         unused: true
       }
     }))
-    .pipe(gulp.dest('dist'));
+    .pipe(gulp.dest('lib'));
 });
 
 gulp.task('build', gulp.series('build:node', 'build:browser', 'build:browser-min'));

@@ -17,7 +17,7 @@
 <script type="text/html" id="style">
   @font-face {
     font-family: 'Test';
-    src: url('https://s3.amazonaws.com/waggl-jsfiddle/flaticons-solid.woff') format('woff');
+    src: url('flaticons-solid.woff') format('woff');
     font-weight: normal;
     font-style: normal;
   }
@@ -27,7 +27,7 @@
 <div id="console"></div>
 
 <script>
-  // if (navigator.userAgent.match(/Android|iOS|iPhone|iPad/)) {
+  /*if (navigator.userAgent.match(/Android|iOS|iPhone|iPad/)) {
     window.onerror = function(a, b, c) {
       alert([a, b, c]);
     };
@@ -44,13 +44,14 @@
         document.querySelector('#console').appendChild(b);
       }
     };
-  // }
+  }*/
 </script>
 
 
-<script src="../dist/ultimate-fonts-loading.js"></script>
+<script src="../lib/browser.js"></script>
 
 <script>
+  Fonts.setSample('normal normal Test', '\ue0ca');
   Fonts.load(document.querySelector('#style').textContent, function() {
     document.body.className = 'fonts';
     console.log('loaded');
