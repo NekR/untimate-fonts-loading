@@ -303,7 +303,7 @@ export function drawBrowserDefaults(browserDefaults, text) {
   browserDefaults.buffer = getVisualBuffer(browserDefaults.gl);
 }
 
-export function checkFont(font) {
+export function hasFont(font) {
   const browserDefaults = getBrowserDefaults(font);
 
   if (!font.localSrc.length) {
@@ -367,7 +367,6 @@ export function injectFontFace(family, source, desc) {
   if (desc.style) fields.push(`${ CSS_FONT }style: ${ desc.style };`);
   if (desc.stretch) fields.push(`${ CSS_FONT }stretch: ${ desc.stretch };`);
   if (desc.variant) fields.push(`${ CSS_FONT }variant: ${ desc.variant };`);
-  if (desc[UNICODE_RANGE]) fields.push(`${ CSS_FONT }${ CSS_UNICODE_RANGE }: ${ desc[UNICODE_RANGE] };`);
   if (desc[FEATURE_SETTINGS]) fields.push(`${ CSS_FONT }${ CSS_FEATURE_SETTINGS }: ${ desc[FEATURE_SETTINGS] };`);
 
   const code = `@${ CSS_FONT }face {
@@ -467,7 +466,7 @@ export function loadFont(font, callback, errback) {
 
   font.parseSources();
 
-  const check = checkFont(font);
+  const check = hasFont(font);
 
   if (check) {
     // inject with right family
@@ -509,8 +508,9 @@ export function loadFont(font, callback, errback) {
     const format = fontUrl[1];
 
     if (
-      // eot ignored because IE cannot handle it properly
-      // woff2 ignored because only browsers with Font Loading API support it
+      // * eot ignored because IE cannot handle it properly
+      // * woff2 ignored because only browsers with Font Loading API support it
+      // * woff is ignored in Android Default browser 4.3<=
       format === 'embedded-opentype' ||
       (format === 'woff2' && (IS_IE || urlSrc.length > 1)) ||
       (format === 'woff' && IS_ANDROID_STOCK)
