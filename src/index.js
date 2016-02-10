@@ -544,7 +544,7 @@ export function loadFont(font, callback, errback) {
           return;
         }
 
-        fallback: if (width === browserDefaults.fallbackWidth) {
+        fallback: if (true || width === browserDefaults.fallbackWidth) {
           if (prepareVisualCheck) {
             prepareVisualCheck();
             prepareVisualCheck = null;
