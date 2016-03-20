@@ -1,35 +1,28 @@
 const gulp = require('gulp');
 const babel = require('gulp-babel');
-const wrap = require('gulp-exports');
+const wrap = require('gulp-wrap');
 const rename = require("gulp-rename");
 const uglify = require('gulp-uglify');
 const del = require('del');
 
-gulp.task('build:node', () => {
-  return gulp.src('src/index.js')
-    .pipe(babel({
-      presets: ['es2015']
-    }))
-    .pipe(gulp.dest('lib'));
-});
-
 gulp.task('build:browser', () => {
-  return gulp.src('src/index.js')
+  return gulp.src('src/**.js')
     .pipe(babel({
       presets: ['es2015']
     }))
-    .pipe(wrap('Fonts'))
-    .pipe(rename('browser.js'))
+    .pipe(wrap('(function() { <%= contents %> }());'))
     .pipe(gulp.dest('lib'));
 });
 
 gulp.task('build:browser-min', () => {
-  return gulp.src('src/index.js')
+  return gulp.src('src/**.js')
     .pipe(babel({
       presets: ['es2015']
     }))
-    .pipe(wrap('Fonts'))
-    .pipe(rename('browser.min.js'))
+    .pipe(wrap('(function() { <%= contents %> }());'))
+    .pipe(rename({
+      suffix: '.min',
+    }))
     .pipe(uglify({
       compress: {
         warnings: false,
@@ -41,18 +34,13 @@ gulp.task('build:browser-min', () => {
     .pipe(gulp.dest('lib'));
 });
 
-gulp.task('build', gulp.series('build:node', 'build:browser', 'build:browser-min'));
-
-gulp.task('watch:node', gulp.series('build:node', () => {
-  gulp.watch(['src/*.js'], gulp.series('build:node'));
-}));
-
+gulp.task('build', gulp.series('build:browser', 'build:browser-min'));
 
 gulp.task('watch:browser', gulp.series('build:browser', () => {
   gulp.watch(['src/*.js'], gulp.series('build:browser'));
 }));
 
 gulp.task('clean', () => {
-  return del(['src/*.js']);
+  return del(['lib/*.js']);
 });
 
