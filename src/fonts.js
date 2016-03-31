@@ -1,4 +1,3 @@
-const USE_FONTS_API = false;
 const FONT_SIZE = '48px ';
 const DEFAULT_TEXT = 'test';
 
@@ -7,6 +6,7 @@ const textSamples = {};
 
 const Fonts = window.Fonts = {
   FONT_SIZE: FONT_SIZE,
+  USE_FONTS_API: true,
 
   getFontType: getFontType,
   Font: Font,
@@ -37,20 +37,22 @@ function nativeLoadFonts(fonts, callback, errback) {
 
     console.log('Fonts API: Loading font:', fontType);
 
-    promises.push(
-      doc.fonts.check(fontType, font.text) ?
-        Promise.resolve() : naitveLoadFont(font)
-    );
+    if (!doc.fonts.check(fontType, font.text)) {
+      promises.push(font);
+    }
   }
 
-  Promise.all(promises).then(callback, errback);
+  Promise.all(
+    promises.map(font => naitveLoadFont(font))
+  ).then(callback, errback);
 }
 
 function load(stylesheet, callback, errback) {
+  const nativeAPI = Fonts.USE_FONTS_API && doc.fonts;
   let isURL;
 
   const handleFonts = (fonts) => {
-    if (USE_FONTS_API && doc.fonts) {
+    if (nativeAPI) {
       nativeLoadFonts(fonts, callback, errback);
     } else {
       Fonts.loadFonts(fonts, callback, errback);
@@ -73,7 +75,7 @@ function load(stylesheet, callback, errback) {
 
   isURL = /^([a-zA-Z]+:)?\/\//.test(stylesheet);
 
-  if ((USE_FONTS_API && doc.fonts) || Fonts.loadFonts) {
+  if (nativeAPI || Fonts.loadFonts) {
     if (isURL) {
       loadFile(stylesheet, handleContent, errback);
     } else {
@@ -132,7 +134,7 @@ Font.prototype = {
       ) + '@'
     }
 
-    return _this._text;
+    return this._text;
   },
 
   set text(val) {

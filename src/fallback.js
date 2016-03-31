@@ -171,8 +171,8 @@ function createCanvas(fontType) {
 }
 
 function getBrowserDefaults(font) {
-  if (defaultsMap[font.text]) {
-    return defaultsMap[font.text];
+  if (defaultsMap[font.weight + font.text]) {
+    return defaultsMap[font.weight + font.text];
   }
 
   const immediateSource = NO_FONT;
@@ -182,7 +182,7 @@ function getBrowserDefaults(font) {
   let family = getFontFamily();
   injectFontFace(family, immediateSource);
 
-  let fontType = FONT_SIZE + family;
+  let fontType = font.weight + ' ' + FONT_SIZE + family;
   let elem = createLoaderElement(fontType, font.text);
 
   const gl = createCanvas(fontType);
@@ -193,7 +193,7 @@ function getBrowserDefaults(font) {
     family = getFontFamily();
     injectFontFace(family, loadingSource);
 
-    fontType = FONT_SIZE + family;
+    fontType = font.weight + ' ' + FONT_SIZE + family;
     // elem = createLoaderElement(fontType, font.text);
     elem.style.font = fontType;
     gl.font = fontType;
@@ -207,7 +207,7 @@ function getBrowserDefaults(font) {
     family = getFontFamily();
     injectFontFace(family, customSource);
 
-    fontType = FONT_SIZE + family;
+    fontType = font.weight + ' ' + FONT_SIZE + family;
     // elem = createLoaderElement(fontType, font.text);
     elem.style.font = fontType;
     gl.font = fontType;
@@ -215,7 +215,7 @@ function getBrowserDefaults(font) {
     customWidth = gl.measureText(font.text).width;
   // }
 
-  const defaults = defaultsMap[font.text] = {
+  const defaults = defaultsMap[font.weight + font.text] = {
     fallbackWidth, loadingWidth,
     customWidth, hasLoadingWidth,
     gl, font: fallbackType
@@ -295,7 +295,7 @@ function hasFont(font) {
 function injectFont(family, source, font) {
   injectFontFace(family, source, font);
 
-  const fontType = getFontType(font, family);
+  const fontType = Fonts.getFontType(font, family);
   createLoaderElement(fontType, font.text);
 
   return fontType;
@@ -489,7 +489,7 @@ function getVisualBuffer(gl) {
   return gl.getImageData(0, 0, 50, 50).data;
 }
 
-Font.prototype.parseSources = function() {
+Fonts.Font.prototype.parseSources = function() {
   if (this.localSrc) return;
 
   const sources = this.src.trim().split(/\s*,\s*/);
