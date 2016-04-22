@@ -16,12 +16,11 @@ const Fonts = window.Fonts = {
   }
 };
 
-function naitveLoadFont(font) {
+function naitveLoadFont(font, fontType) {
   const fontFace = new FontFace(font.family, font.src, font);
+  doc.fonts.add(fontFace);
 
-  return fontFace.load().then(() => {
-    doc.fonts.add(fontFace);
-  });
+  return doc.fonts.load(fontType);
 }
 
 function nativeLoadFonts(fonts, callback, errback) {
@@ -37,19 +36,14 @@ function nativeLoadFonts(fonts, callback, errback) {
 
     console.log('Fonts API: Loading font:', fontType);
 
-    if (!doc.fonts.check(fontType, font.text)) {
-      promises.push(font);
-    }
+    promises.push(naitveLoadFont(font, fontType));
   }
 
-  Promise.all(
-    promises.map(font => naitveLoadFont(font))
-  ).then(callback, errback);
+  Promise.all(promises).then(callback, errback);
 }
 
 function load(stylesheet, callback, errback) {
   const nativeAPI = Fonts.USE_FONTS_API && doc.fonts;
-  let isURL;
 
   const handleFonts = (fonts) => {
     if (nativeAPI) {
@@ -65,27 +59,31 @@ function load(stylesheet, callback, errback) {
     } else {
       loadFallback(handleFonts);
     }
-
-    return;
   }
 
-  const handleContent = (content) => {
-    handleFonts(parseStylesheet(content));
-  };
+  else if (typeof stylesheet === 'string') {
+    const handleContent = (content) => {
+      handleFonts(parseStylesheet(content));
+    };
 
-  isURL = /^([a-zA-Z]+:)?\/\//.test(stylesheet);
+    const isURL = /^([a-zA-Z]+:)?\/\//.test(stylesheet);
 
-  if (nativeAPI || Fonts.loadFonts) {
-    if (isURL) {
-      loadFile(stylesheet, handleContent, errback);
+    if (nativeAPI || Fonts.loadFonts) {
+      if (isURL) {
+        loadFile(stylesheet, handleContent, errback);
+      } else {
+        handleContent(stylesheet);
+      }
     } else {
-      handleContent(stylesheet);
+      loadFallback(handleContent, isURL);
     }
-  } else {
-    loadFallback(handleContent);
   }
 
-  function loadFallback(callback) {
+  else {
+    setTimeout(errback);
+  }
+
+  function loadFallback(callback, isURL) {
     let count = isURL ? 2 : 1;
     let content = stylesheet;
 
