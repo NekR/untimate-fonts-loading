@@ -20,7 +20,7 @@ function naitveLoadFont(font, fontType) {
   const fontFace = new FontFace(font.family, font.src, font);
   doc.fonts.add(fontFace);
 
-  return doc.fonts.load(fontType);
+  return doc.fonts.load(fontType, font.text);
 }
 
 function nativeLoadFonts(fonts, callback, errback) {
