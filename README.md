@@ -66,7 +66,13 @@ Fonts.load([font], ...);
 
 Does same as _Example 1_, but uses `getFontType(font: Fonts.Font)` method to stringify `Font` to `font` (CSS's `font` property value) and then re-uses same `Font` to load it.
 ___________________________
+```ts
+Fonts.USE_FONTS_API: boolean;
+```
+Set to `false` before calling `load()` to prevent usage of Fonts Loading API.
 
+Example: `Fonts.USE_FONTS_API = false;`
+___________________________
 
 
 ## Hot it works
