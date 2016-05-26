@@ -54,7 +54,7 @@ function load(stylesheet, callback, errback) {
   };
 
   if (Array.isArray(stylesheet)) {
-    if (Fonts.loadFonts) {
+    if (nativeAPI || Fonts.loadFonts) {
       handleFonts(stylesheet)
     } else {
       loadFallback(handleFonts);
